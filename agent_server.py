@@ -16,8 +16,10 @@ from hypercorn.config import Config
 from hypercorn.asyncio import serve
 import aiohttp
 
-# Load environment variables from .env file
+
+# Load environment variables
 load_dotenv()
+api_key = os.getenv("REPLICATE_API_KEY")
 
 # Initialize Quart app (async version of Flask)
 app = Quart(__name__)
@@ -29,7 +31,7 @@ class InjectiveChatAgent:
         load_dotenv()
 
         # Get API key from environment variable
-        self.api_key = os.getenv("REPLICATE_API_KEY")
+        self.api_key = api_key
         if not self.api_key:
             raise ValueError(
                 "No REPLICATE API key found. Please set the OPENAI_API_KEY environment variable."
@@ -346,8 +348,8 @@ async def clear_endpoint():
 
 def main():
     parser = argparse.ArgumentParser(description="Run the chatbot API server")
-    parser.add_argument("--port", type=int, help="Port for API server")
-    parser.add_argument("--host",  help="Host for API server")
+    parser.add_argument("--port", type=int, default=5000, help="Port for API server")
+    parser.add_argument("--host", default="0.0.0.0", help="Host for API server")
     parser.add_argument("--debug", action="store_true", help="Run in debug mode")
     args = parser.parse_args()
 
