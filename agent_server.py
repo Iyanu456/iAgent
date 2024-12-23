@@ -16,6 +16,9 @@ from hypercorn.config import Config
 from hypercorn.asyncio import serve
 import aiohttp
 
+# Load environment variables from .env file
+load_dotenv()
+
 # Initialize Quart app (async version of Flask)
 app = Quart(__name__)
 
@@ -343,8 +346,8 @@ async def clear_endpoint():
 
 def main():
     parser = argparse.ArgumentParser(description="Run the chatbot API server")
-    parser.add_argument("--port", type=int, default=5000, help="Port for API server")
-    parser.add_argument("--host", default="0.0.0.0", help="Host for API server")
+    parser.add_argument("--port", type=int, help="Port for API server")
+    parser.add_argument("--host",  help="Host for API server")
     parser.add_argument("--debug", action="store_true", help="Run in debug mode")
     args = parser.parse_args()
 
