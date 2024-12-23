@@ -38,7 +38,7 @@ class InjectiveChatAgent:
             )
 
         # Initialize OpenAI client
-        self.client = replicate.Client(api_token=self.api_key)
+        self.client = replicate.Client(api_token=api_key)
 
         # Initialize conversation histories
         self.conversations = {}
