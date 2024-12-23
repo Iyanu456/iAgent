@@ -19,6 +19,7 @@ import aiohttp
 
 # Load environment variables
 load_dotenv()
+REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_KEY")
 api_key = os.getenv("REPLICATE_API_KEY")
 
 # Initialize Quart app (async version of Flask)
@@ -31,14 +32,15 @@ class InjectiveChatAgent:
         load_dotenv()
 
         # Get API key from environment variable
-        self.api_key = api_key
+        self.api_key = os.getenv("REPLICATE_API_KEY")
         if not self.api_key:
             raise ValueError(
                 "No REPLICATE API key found. Please set the OPENAI_API_KEY environment variable."
             )
 
         # Initialize OpenAI client
-        self.client = replicate.Client(api_token=api_key)
+        print(REPLICATE_API_TOKEN)
+        self.client = replicate.Client(api_token=REPLICATE_API_TOKEN)
 
         # Initialize conversation histories
         self.conversations = {}
