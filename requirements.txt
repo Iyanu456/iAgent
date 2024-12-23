@@ -71,7 +71,7 @@ pyTelegramBotAPI==4.24.0
 python-dotenv==1.0.1
 python-telegram-bot==21.8
 pyunormalize==16.0.0
-pywin32==308
+pywin32==308; platform_system == "Windows"
 PyYAML==6.0.2
 Quart==0.19.9
 referencing==0.35.1
