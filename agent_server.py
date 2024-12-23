@@ -1,4 +1,5 @@
-from openai import OpenAI
+#from openai import OpenAI
+import replicate
 import os
 from dotenv import load_dotenv
 from quart import Quart, request, jsonify
@@ -25,30 +26,30 @@ class InjectiveChatAgent:
         load_dotenv()
 
         # Get API key from environment variable
-        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.api_key = os.getenv("REPLICATE_API_KEY")
         if not self.api_key:
             raise ValueError(
-                "No OpenAI API key found. Please set the OPENAI_API_KEY environment variable."
+                "No REPLICATE API key found. Please set the OPENAI_API_KEY environment variable."
             )
 
         # Initialize OpenAI client
-        self.client = OpenAI(api_key=self.api_key)
+        self.client = replicate.Client(api_token=self.api_key)
 
         # Initialize conversation histories
         self.conversations = {}
         # Initialize injective agents
         self.agents = {}
-        schema_paths = [
-            "./injective_functions/account/account_schema.json",
-            "./injective_functions/auction/auction_schema.json",
-            "./injective_functions/authz/authz_schema.json",
-            "./injective_functions/bank/bank_schema.json",
-            "./injective_functions/exchange/exchange_schema.json",
-            "./injective_functions/staking/staking_schema.json",
-            "./injective_functions/token_factory/token_factory_schema.json",
-            "./injective_functions/utils/utils_schema.json",
-        ]
-        self.function_schemas = FunctionSchemaLoader.load_schemas(schema_paths)
+        #schema_paths = [
+        #    "./injective_functions/account/account_schema.json",
+        #    "./injective_functions/auction/auction_schema.json",
+        #    "./injective_functions/authz/authz_schema.json",
+        #    "./injective_functions/bank/bank_schema.json",
+        #    "./injective_functions/exchange/exchange_schema.json",
+        #    "./injective_functions/staking/staking_schema.json",
+        #    "./injective_functions/token_factory/token_factory_schema.json",
+        #    "./injective_functions/utils/utils_schema.json",
+        #]
+        #self.function_schemas = FunctionSchemaLoader.load_schemas(schema_paths)
 
     async def initialize_agent(
         self, agent_id: str, private_key: str, environment: str = "mainnet"
@@ -91,7 +92,7 @@ class InjectiveChatAgent:
         agent_id=None,
         environment="mainnet",
     ):
-        """Get response from OpenAI API."""
+        """Get response from REPLICATE API."""
         await self.initialize_agent(
             agent_id=agent_id, private_key=private_key, environment=environment
         )
@@ -102,53 +103,67 @@ class InjectiveChatAgent:
                 self.conversations[session_id] = []
 
             # Add user message to conversation history
+            #self.conversations[session_id].append({"role": "user", "content": message})
+
+            # Add the user's message to the conversation history
             self.conversations[session_id].append({"role": "user", "content": message})
 
-            # Get response from OpenAI
-            response = await asyncio.to_thread(
-                self.client.chat.completions.create,
-                model="gpt-4o",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """You are a helpful AI assistant on Injective Chain. 
-                    You will be answering all things related to injective chain, and help out with
-                    on-chain functions.
-                    
-                    When handling market IDs, always use these standardized formats:
-                    - For BTC perpetual: "BTC/USDT PERP" maps to "btcusdt-perp"
-                    - For ETH perpetual: "ETH/USDT PERP" maps to "ethusdt-perp"
-                    
-                    When users mention markets:
-                    1. If they use casual terms like "Bitcoin perpetual" or "BTC perp", interpret it as "BTC/USDT PERP"
-                    2. If they mention "Ethereum futures" or "ETH perpetual", interpret it as "ETH/USDT PERP"
-                    3. Always use the standardized format in your responses
-                    
-                    Before performing any action:
-                    1. Describe what you're about to do
-                    2. Ask for explicit confirmation
-                    3. Only proceed after receiving a "yes"
-                    
-                    When making function calls:
-                    1. Convert the standardized format (e.g., "BTC/USDT PERP") to the internal format (e.g., "btcusdt-perp")
-                    2. When displaying results to users, convert back to the standard format
-                    3. Always confirm before executing any functions
-                    
-                    For general questions, provide informative responses.
-                    When users want to perform actions, describe the action and ask for confirmation but for fetching data you dont have to ask for confirmation.""",
-                    }
-                ]
-                + self.conversations[session_id],
-                functions=self.function_schemas,
-                function_call="auto",
-                max_tokens=2000,
-                temperature=0.7,
+           # Build the conversation context in the desired format
+            conversation_context = "\n".join(
+                [f'{item["role"]}: {item["content"]}' for item in self.conversations[session_id]]
             )
 
-            response_message = response.choices[0].message
-            print(response_message)
+            # Prepare the prompt for the AI
+            prompt = f"{conversation_context}\nAI:"
+
+            # Assume `ai_response` is generated here
+            ai_response = "This is the AI's response."  # Replace with actual AI generation logic
+
+            # Append the AI's response
+            self.conversations[session_id].append({"role": "AI", "content": ai_response})
+
+            # Get response from OpenAI
+            
+            # Call the Replicate API with the updated prompt
+            response = ""
+            for event in replicate.stream(
+                "meta/llama-2-7b-chat",
+                input={
+                    "top_k": 0,
+                    "top_p": 1,
+                    "prompt": prompt,
+                    "max_tokens": 512,
+                    "temperature": 0.75,
+                    "system_prompt": (
+                    """role: system"
+                    user's address: inj1rrqc20lhy48e9lxetcpxvqwj3t594hwy3q3y77
+                    content": You are a helpful AI assistant on Injective Chain. 
+                    You will be answering all things related to Injective Chain and assist with
+                    on-chain functions.
+
+                    don't make unnecessary responses about balance checking, making tranfers and the likes unless explicitly asked to
+
+                     When users want to check their balance,  respond only with the text `function query_balance(<user's address>)`'
+                     When users want to make transfers,  respond only with the text `function transfer_funds(<amount to transfer (do not add currency or token here)>, <address to transfer to>, <currency or token>)`'
+                    
+                     
+                   """
+
+                    ),
+                    "length_penalty": 1,
+                    "max_new_tokens": 800,
+                    "prompt_template": "<s>[INST] <<SYS>>\n{system_prompt}\n<</SYS>>\n\n{prompt} [/INST]",
+                    "presence_penalty": 0,
+                    "log_performance_metrics": False
+                },
+            ):
+                response += str(event)
+
+            response_message = response
+
+            #print(response_message)
             # Handle function calling
-            if (
+            """if (
                 hasattr(response_message, "function_call")
                 and response_message.function_call
             ):
@@ -202,27 +217,27 @@ class InjectiveChatAgent:
                     },
                     "session_id": session_id,
                 }
-
+            """
             # Handle regular response
-            bot_message = response_message.content
-            if bot_message:
+            #bot_message = response_message.content
+            if response:
                 self.conversations[session_id].append(
-                    {"role": "assistant", "content": bot_message}
+                    {"role": "assistant", "content": response}
                 )
 
                 return {
-                    "response": bot_message,
+                    "response": response,
                     "function_call": None,
                     "session_id": session_id,
                 }
             else:
                 default_response = "I'm here to help you with trading on Injective Chain. You can ask me about trading, checking balances, making transfers, or staking. How can I assist you today?"
                 self.conversations[session_id].append(
-                    {"role": "assistant", "content": default_response}
+                    {"role": "assistant", "content": response}
                 )
 
                 return {
-                    "response": default_response,
+                    "response": response,
                     "function_call": None,
                     "session_id": session_id,
                 }
@@ -256,7 +271,6 @@ async def ping():
         {"status": "ok", "timestamp": datetime.now().isoformat(), "version": "1.0.0"}
     )
 
-
 @app.route("/chat", methods=["POST"])
 async def chat_endpoint():
     """Main chat endpoint"""
@@ -283,8 +297,22 @@ async def chat_endpoint():
         response = await agent.get_response(
             data["message"], session_id, private_key, agent_id
         )
+        
+        print(f"Response content: {response}")
+        print(f"Type of Response: {type(response)}")
+
+        # Assuming response might be a dictionary or object, handle accordingly
+        if isinstance(response, dict):
+            # If response contains a key "response", extract it
+            message = response.get("response", "No response message found")
+        elif isinstance(response, str):
+            message = response
+        else:
+            message = "Unexpected response format"
 
         return jsonify(response)
+    
+    
     except Exception as e:
         return (
             jsonify(
