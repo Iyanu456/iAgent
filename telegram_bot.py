@@ -1,3 +1,4 @@
+from keep_alive import keep_alive
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -13,6 +14,9 @@ from dotenv import load_dotenv
 import os
 import aiohttp
 
+
+
+keep_alive()
 # Load environment variables from .env file
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -27,7 +31,7 @@ logger = logging.getLogger(__name__)
 # Get the bot token and Replicate API token from the environment
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 BASE_URL = os.getenv("BASE_URL")
-REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_KEY")
+REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
 if not REPLICATE_API_TOKEN:
     raise ValueError("Replicate API token is missing. Set REPLICATE_API_TOKEN in your environment.")
 
@@ -146,7 +150,7 @@ async def handle_query(update: Update, context: CallbackContext) -> None:
 
         async with aiohttp.ClientSession() as session:
             headers = {
-                "Authorization": "Bearer your_secret_key_here"  # Replace with your actual secret key
+                "Authorization": f"Bearer {SECRET_KEY}"  # Replace with your actual secret key
             }
             async with session.post(backend_url, json={
                 "message": user_message,
