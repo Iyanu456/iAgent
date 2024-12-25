@@ -1,5 +1,6 @@
 #from openai import OpenAI
 import replicate
+from quart_cors import cors
 import os
 from dotenv import load_dotenv
 from quart import Quart, request, jsonify
@@ -18,6 +19,9 @@ import aiohttp
 
 # Initialize Quart app (async version of Flask)
 app = Quart(__name__)
+app = cors(app, allow_origin="*")  
+
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 
 
@@ -265,6 +269,12 @@ class InjectiveChatAgent:
 # Initialize chat agent
 agent = InjectiveChatAgent()
 
+@app.before_request
+async def check_secret_key():
+    """Middleware to validate the secret key in request headers."""
+    secret_key = request.headers.get("X-API-KEY")
+    if secret_key != SECRET_KEY:
+        return jsonify({"error": "Unauthorized: Invalid secret key"}), 401
 
 @app.route("/ping", methods=["GET"])
 async def ping():
