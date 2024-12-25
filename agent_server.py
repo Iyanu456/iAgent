@@ -16,14 +16,10 @@ from hypercorn.config import Config
 from hypercorn.asyncio import serve
 import aiohttp
 
-
-# Load environment variables
-load_dotenv()
-REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_KEY")
-api_key = os.getenv("REPLICATE_API_KEY")
-
 # Initialize Quart app (async version of Flask)
 app = Quart(__name__)
+
+
 
 
 class InjectiveChatAgent:
@@ -32,15 +28,14 @@ class InjectiveChatAgent:
         load_dotenv()
 
         # Get API key from environment variable
-        self.api_key = os.getenv("REPLICATE_API_KEY")
+        self.api_key = os.getenv("REPLICATE_API_TOKEN")
         if not self.api_key:
             raise ValueError(
                 "No REPLICATE API key found. Please set the OPENAI_API_KEY environment variable."
             )
 
         # Initialize OpenAI client
-        print(REPLICATE_API_TOKEN)
-        self.client = replicate.Client(api_token=REPLICATE_API_TOKEN)
+        self.client = replicate.Client(api_token=self.api_key)
 
         # Initialize conversation histories
         self.conversations = {}
