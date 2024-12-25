@@ -270,11 +270,17 @@ class InjectiveChatAgent:
 agent = InjectiveChatAgent()
 
 @app.before_request
-async def check_secret_key():
-    """Middleware to validate the secret key in request headers."""
-    secret_key = request.headers.get("X-API-KEY")
-    if secret_key != SECRET_KEY:
-        return jsonify({"error": "Unauthorized: Invalid secret key"}), 401
+@app.before_request
+async def check_authorization_header():
+    """Middleware to validate the authorization header."""
+    authorization_header = request.headers.get("Authorization")
+    if not authorization_header or not authorization_header.startswith("Bearer "):
+        return jsonify({"error": "Unauthorized: Missing or invalid Authorization header"}), 401
+
+    token = authorization_header.split("Bearer ")[1]  # Extract token after "Bearer "
+    if token != SECRET_KEY:
+        return jsonify({"error": "Unauthorized: Invalid token"}), 401
+
 
 @app.route("/ping", methods=["GET"])
 async def ping():

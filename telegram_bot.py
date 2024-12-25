@@ -15,6 +15,7 @@ import aiohttp
 
 # Load environment variables from .env file
 load_dotenv()
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # Set up logging
 logging.basicConfig(
@@ -144,12 +145,15 @@ async def handle_query(update: Update, context: CallbackContext) -> None:
         session_id = str(user_id)  # Using user_id as the session_id
 
         async with aiohttp.ClientSession() as session:
+            headers = {
+                "Authorization": "Bearer your_secret_key_here"  # Replace with your actual secret key
+            }
             async with session.post(backend_url, json={
                 "message": user_message,
                 "session_id": session_id,
                 "agent_id": "example-agent",  # Optional, if you need to pass it
                 "agent_key": "ec6d38c60720e5e20f6b0ab989c619652dee84f953250bbf291b3922c8b70656",  # Optional, if you need to pass it
-            }) as response:
+            }, headers=headers) as response:
                 if response.status == 200:
                     # Get the response from your backend
                     response_data = await response.json()
