@@ -22,14 +22,13 @@ class InjectiveBank(InjectiveBase):
         )
         return await self.chain_client.build_and_broadcast_tx(msg)
 
-    async def query_balances(self, denom_list: List[str] = None) -> Dict:
+    """async def query_balances(self, denom_list: List[str] = None, client_address="") -> Dict:
         try:
 
-            denoms: Dict[str, int] = await fetch_decimal_denoms(
-                self.chain_client.network_type
-            )
+           
+            denoms: Dict[str, int] = await fetch_decimal_denoms(is_mainnet= False)
             bank_balances = await self.chain_client.client.fetch_bank_balances(
-                address=self.chain_client.address.to_acc_bech32()
+                client_address
             )
             bank_balances = bank_balances["balances"]
 
@@ -91,6 +90,43 @@ class InjectiveBank(InjectiveBase):
                 return {"success": True, "result": human_readable_balances}
 
         except Exception as e:
+            return {"success": False, "error": detailed_exception_info(e)}"""
+    
+
+    async def query_balances(self, denom_list: List[str] = None) -> Dict:
+        try:
+
+            denoms: Dict[str, int] = await fetch_decimal_denoms(
+                self.chain_client.network_type
+            )
+            bank_balances = await self.chain_client.client.fetch_bank_balances(
+                address=self.chain_client.address.to_acc_bech32()
+            )
+            bank_balances = bank_balances["balances"]
+            print("Raw bank balances:", bank_balances)
+
+            # hash the bank balances as a kv pair
+            human_readable_balances = {}
+            for token in bank_balances:
+                if token["denom"] in denoms:
+                    human_readable_balances[token["denom"]] = str(
+                        int(token["amount"]) / 10 ** int(denoms[token["denom"]])
+                    )
+            # check if denom is an arg fron the openai func calling
+            filtered_balances = dict()
+            if denom_list != None:
+                # filter the balances
+                # TODO: replace with lambda func
+                for denom in denom_list:
+                    if denom in human_readable_balances:
+                        filtered_balances[denom] = human_readable_balances[denom]
+                    else:
+                        filtered_balances[denom] = "The token is not on mainnet!"
+                return {"success": True, "result": filtered_balances}
+
+            else:
+                return {"success": True, "result": human_readable_balances}
+        except Exception as e:
             return {"success": False, "error": detailed_exception_info(e)}
 
     async def query_total_supply(self, denom_list: List[str] = None) -> Dict:
@@ -126,3 +162,4 @@ class InjectiveBank(InjectiveBase):
 
         except Exception as e:
             return {"success": False, "error": detailed_exception_info(e)}
+

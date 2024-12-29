@@ -1,6 +1,8 @@
 #from openai import OpenAI
 import replicate
+from utils.decrypt import decrypt
 from quart_cors import cors
+from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
 from quart import Quart, request, jsonify
@@ -20,8 +22,22 @@ import aiohttp
 # Initialize Quart app (async version of Flask)
 app = Quart(__name__)
 app = cors(app, allow_origin="*")  
+load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
+ENVIRONMENT = os.getenv("ENVIRONMENT")
+DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_NAME = os.getenv("DATABASE_NAME")
+
+if not ENVIRONMENT:
+            raise ValueError(
+                "ENVIRONMENT not specified, please set testnet or mainnet environment"
+            )
+
+
+database_client = MongoClient(F"{DATABASE_URL}")
+db = database_client[f"{DATABASE_NAME}"]
+wallets_collection = db["wallets"]
 
 
 
@@ -140,6 +156,7 @@ class InjectiveChatAgent:
                     "prompt": prompt,
                     "max_tokens": 512,
                     "temperature": 0.75,
+                    
                     "system_prompt": (
                     """role: system"
                     user's address: inj1rrqc20lhy48e9lxetcpxvqwj3t594hwy3q3y77
@@ -288,6 +305,71 @@ async def ping():
     return jsonify(
         {"status": "ok", "timestamp": datetime.now().isoformat(), "version": "1.0.0"}
     )
+
+@app.route("/transfer_funds", methods=["POST"])
+async def transfer_funds():
+    """transfer funds"""
+   
+    data = await request.get_json()
+
+    if not data:
+        return jsonify({"error": "Missing required json body"}), 400
+    
+    injective_address = data.get("injective_address", "default")
+    user_id = data.get("userId")
+    amount = data.get("amount")
+    recipient_address = data.get("recipient")
+    denom = data.get("denom")
+
+    agent_id = user_id
+    environment = ENVIRONMENT
+    encrypted_private_key = data.get('private_key', None)
+
+
+    if not injective_address or not user_id or not amount or not recipient_address or not denom :
+        return jsonify({"error": "Missing required fields"}), 400
+
+    if not encrypted_private_key:
+        return jsonify({"error": "Missing private key"}), 500
+    decrypted_private_key = decrypt(encrypted_private_key)
+
+    if not user_id or not amount or not recipient_address:
+            return jsonify({"error": "Missing required fields"}), 400
+    
+    user = wallets_collection.find_one({"userId": user_id})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    # Find the wallet object within the wallets array
+    wallet = next(
+        (w for w in user.get("wallets", []) if w.get("injective_address") == injective_address), 
+        None
+    )
+    
+    if not wallet:
+        return jsonify({"error": "Wallet not found"}), 404
+    
+    await agent.initialize_agent(agent_id=agent_id, private_key=decrypted_private_key, environment=environment)
+    
+    # Arguments for the query_balances function
+    arguments = {
+        "to_address": f"{recipient_address}",
+        "amount": f"{amount}",
+        "denom": f"{denom}",
+    }
+    
+    # Execute the query_balances function
+    result = await agent.execute_function(
+        function_name="transfer_funds",
+        arguments=arguments,
+        agent_id=agent_id
+    )
+    
+    # Print the result
+    if "error" in result:
+        print("Error:", result["error"])
+    else:
+        print("Balances:", result)
 
 @app.route("/chat", methods=["POST"])
 async def chat_endpoint():

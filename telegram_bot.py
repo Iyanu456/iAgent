@@ -1,5 +1,6 @@
 from keep_alive import keep_alive
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, User, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import ChatInviteLink
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -14,9 +15,10 @@ from dotenv import load_dotenv
 import os
 import aiohttp
 
+user = User.first_name
+#print (user)
 
-
-keep_alive()
+#keep_alive()
 # Load environment variables from .env file
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -78,6 +80,10 @@ def replace_placeholders(response: str) -> str:
 
 # Command to start interaction
 async def start(update: Update, context: CallbackContext) -> None:
+
+    user_id = update.effective_user.id  # Telegram User ID
+    first_name = update.effective_user.first_name
+    username = update.effective_user.username
     """Handle the /start command."""
     try:
         
@@ -92,7 +98,7 @@ async def start(update: Update, context: CallbackContext) -> None:
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.message.reply_text(
-            "Hello! I'm your Injective Agent Bot. How can I assist you today?\nClick the button below to open the web app:",
+            f"Hello! I'm your Injective Agent Bot. How can I assist you today?\nClick the button below to open the web app: {user_id} {first_name} {username}",
             reply_markup=reply_markup,
         )
     except Exception as e:
@@ -153,7 +159,7 @@ async def handle_query(update: Update, context: CallbackContext) -> None:
                 "Authorization": f"Bearer {SECRET_KEY}"  # Replace with your actual secret key
             }
             async with session.post(backend_url, json={
-                "message": user_message,
+                "message": f"{user} {user_message}",
                 "session_id": session_id,
                 "agent_id": "example-agent",  # Optional, if you need to pass it
                 "agent_key": "ec6d38c60720e5e20f6b0ab989c619652dee84f953250bbf291b3922c8b70656",  # Optional, if you need to pass it
