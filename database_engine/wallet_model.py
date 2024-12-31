@@ -1,7 +1,8 @@
-from quart import Quart, jsonify
+from quart import jsonify
 from mongoengine import Document, StringField, ListField, EmbeddedDocumentField, EmbeddedDocument, connect
 from database_engine.utils.create_wallet import create_injective_wallet
 from database_engine.utils.encrypt import encrypt
+from database_engine.utils.decrypt import decrypt
 import os
 from dotenv import load_dotenv
 
@@ -41,12 +42,12 @@ class StorageEngine:
         """
         try:
             if not wallet_name:
-                return jsonify({"error": "wallet_name is missing"}), 400
+                return ({"ok": False, "error": "wallet_name is missing"})
 
             # Create a new Injective wallet
             wallet_data = create_injective_wallet()
             if not wallet_data['privateKey'] or not wallet_data['injectiveAddress']:
-                return jsonify({"error": "Wallet creation failed"}), 500
+                return ({"ok":False,"error": "Wallet creation failed"})
 
             # Encrypt the private key
             encrypted_private_key = encrypt(wallet_data['privateKey'])
@@ -66,7 +67,7 @@ class StorageEngine:
             )
             wallet.save()  # Save asynchronously
 
-            return jsonify({
+            return ({
                 "ok": True,
                 "user_id": user_id,
                 "wallet_name": wallet_name,
@@ -76,7 +77,7 @@ class StorageEngine:
 
         except Exception as e:
             print("Error creating wallet:", str(e))
-            return jsonify({"ok": False, "error": "Error adding new wallet"}), 500
+            return ({"ok": False, "error": "Error adding new wallet"})
 
         
 
@@ -87,27 +88,27 @@ class StorageEngine:
         """
         try:
             if not user_id:
-                return jsonify({"error": "User ID is required"}), 400
+                return ({"ok": False, "error": "User ID is required"})
 
             if not wallet_name:
-                return jsonify({"error": "Wallet name is required"}), 400
+                return ({"ok": False, "error": "Wallet name is required"})
             
 
             # Fetch the user document
             user_wallets = Wallet.objects(user_id=user_id).first()  # Async query
             if not user_wallets:
-                return jsonify({"error": "User not found"}), 404
+                return ({"ok": False, "error": "User not found"})
             
             
             # Check if wallet with the same name already exists for the user
             for wallet in user_wallets.wallets:
                 if wallet.wallet_name == wallet_name:
-                    return jsonify({"error": f"Wallet name '{wallet_name}' already exists for this user"}), 400
+                    return ({"ok": False, "error": f"Wallet name '{wallet_name}' already exists for this user"})
 
             # Create a new Injective wallet
             wallet_data = create_injective_wallet()
             if not wallet_data['privateKey'] or not wallet_data['injectiveAddress']:
-                return jsonify({"error": "Wallet creation failed"}), 500
+                return ({"ok": False, "error": "Wallet creation failed"})
 
             # Encrypt the private key
             encrypted_private_key = encrypt(wallet_data['privateKey'])
@@ -126,7 +127,7 @@ class StorageEngine:
             # Fetch updated user
             updated_user = Wallet.objects(user_id=user_id).first()
 
-            return jsonify({
+            return ({
                 "ok": True,
                 "user_id": updated_user.user_id,
                 "new_wallet": {
@@ -153,9 +154,9 @@ class StorageEngine:
             # Fetch user document
             user = await Wallet.objects(user_id=user_id).first()  # Async query
             if not user:
-                return jsonify({"error": "User not found"}), 404
+                return ({"ok": False, "error": "User not found"})
 
-            return jsonify({
+            return ({
                 "ok": True,
                 "user_id": user.user_id,
                 "wallets": [{
@@ -167,6 +168,41 @@ class StorageEngine:
 
         except Exception as e:
             print("Error fetching user details:", str(e))
-            return jsonify({"ok": False, "error": "Error fetching user's details"}), 500
+            return ({"ok": False, "error": "Error fetching user's details"})
+        
+    async def get_decrypted_private_key(self, user_id):
+        """
+        Get the decrypted private key for the user's current Injective address.
+        """
+        try:
+            # Fetch the user document
+            user = Wallet.objects(user_id=user_id).first()
+            if not user:
+                return {"ok": False, "error": "User not found"}
+            
+            # Get the current Injective address
+            current_address = user.current_injective_address
+            if not current_address:
+                return {"ok": False, "error": "Current Injective address not set"}
+
+            # Find the wallet associated with the current Injective address
+            wallet_item = next(
+                (wallet for wallet in user.wallets if wallet.injective_address == current_address), 
+                None
+            )
+            if not wallet_item:
+                return {"ok": False, "error": "No wallet found for the current Injective address"}
+
+            # Decrypt the private key
+            decrypted_private_key = decrypt(wallet_item.private_key)
+
+            if decrypted_private_key.startswith("0x"):
+                decrypted_private_key = decrypted_private_key[2:]
+            
+            return (decrypted_private_key)
+
+        except Exception as e:
+            print("Error getting decrypted private key:", str(e))
+            return {"ok": False, "error": "Error retrieving decrypted private key"}
 
 

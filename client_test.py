@@ -164,7 +164,7 @@ async def transfer():
         print("Balances:", result)
 # Run the script
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(transfer())
 
 
 
