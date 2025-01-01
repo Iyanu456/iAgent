@@ -13,13 +13,35 @@ load_dotenv()
 app = Quart(__name__)
 
 # Enable CORS for Quart
-app = cors(app, allow_origin="*", allow_headers=["Authorization", "Content-Type"])
+#app = cors(app, allow_origin="*", allow_headers=["Authorization", "Content-Type"])
+
+app = cors(
+    app,
+    
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
+    allow_methods=["GET", "POST", "OPTIONS"],  # Ensure OPTIONS is included
+    allow_origin=["http://localhost:5173"],  # Explicitly allow your frontend origin
+
+)
 agents = {}
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 
+
+@app.route("/<path:path>", methods=["OPTIONS"])
+async def handle_options(path):
+    response = jsonify({"ok": True})
+    response.headers.add("Access-Control-Allow-Origin", "http://localhost:5173")
+    response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    response.headers.add("Access-Control-Allow-Headers", "Authorization, Content-Type")
+    return response, 200
+
+
 @app.before_request
 async def authorize():
+    if request.method == "OPTIONS" or request.endpoint in ['health_check', 'open_route']:
+        return  # Skip auth for OPTIONS and specific routes
+        
     """Global middleware to check for Authorization header."""
     # Exclude routes that do not need authorization
     if request.endpoint in ['health_check', 'open_route']:
