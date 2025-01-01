@@ -20,7 +20,7 @@ app = cors(
     
     allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
     allow_methods=["GET", "POST", "OPTIONS"],  # Ensure OPTIONS is included
-    allow_origin=["http://localhost:5173"],  # Explicitly allow your frontend origin
+    allow_origin=["*"],  # Explicitly allow your frontend origin
 
 )
 agents = {}
