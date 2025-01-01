@@ -34,6 +34,7 @@ class Wallet(Document):
 
 class StorageEngine:
     def __init__(self, host=DATABASE_URL):
+        self.agents= {}
         connect(db=DB_NAME, host=host)
 
     async def create_new_wallet(self, wallet_name, user_id):
@@ -205,4 +206,20 @@ class StorageEngine:
             print("Error getting decrypted private key:", str(e))
             return {"ok": False, "error": "Error retrieving decrypted private key"}
 
+
+    async def check_if_user_exists(self, user_id):
+        """
+        Check if a user exists in the database.
+        """
+        try:
+            # Fetch user document
+            user = Wallet.objects(user_id=user_id).first()  # Sync query for simplicity
+            if user:
+                return {"ok": True, "exists": True, "message": "User exists."}
+            else:
+                return {"ok": True, "exists": False, "message": "User does not exist."}
+        except Exception as e:
+            print("Error checking if user exists:", str(e))
+            return {"ok": False, "error": "Error checking user existence."}
+        
 
