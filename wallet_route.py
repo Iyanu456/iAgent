@@ -148,7 +148,7 @@ async def transfer_funds():
         return jsonify({"error": str(e)}), 500
     
 
-@app.route('/check-user/<user_id>', methods=['GET'])
+@app.route('/check_user/<user_id>', methods=['GET'])
 async def check_user(user_id):
     storage_engine = StorageEngine()
     result = await storage_engine.check_if_user_exists(user_id)
