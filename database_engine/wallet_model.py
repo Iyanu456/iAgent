@@ -42,8 +42,13 @@ class StorageEngine:
         Create a new wallet for a user.
         """
         try:
+            user = Wallet.objects(user_id=user_id).first()  # Async query
+            if user:
+                return ({"ok": True, "message": "User already exists"})
+            
             if not wallet_name:
                 return ({"ok": False, "error": "wallet_name is missing"})
+                
 
             # Create a new Injective wallet
             wallet_data = create_injective_wallet()
@@ -153,9 +158,20 @@ class StorageEngine:
         """
         try:
             # Fetch user document
-            user = await Wallet.objects(user_id=user_id).first()  # Async query
+            user = Wallet.objects(user_id=user_id).first()  # Async query
             if not user:
                 return ({"ok": False, "error": "User not found"})
+            
+            return ({
+                "ok": True,
+                "user_id": user.user_id,
+                "current_injective_address": user.current_injective_address,
+                "wallets": [{
+                    "wallet_name": wallet.wallet_name,
+                    "injective_address": wallet.injective_address,
+                    "evm_address": wallet.evm_address,
+                } for wallet in user.wallets],
+            })
 
             return ({
                 "ok": True,
