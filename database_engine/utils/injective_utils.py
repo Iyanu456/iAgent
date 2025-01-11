@@ -79,7 +79,7 @@ class InjectiveTransaction:
         arguments = {
             "to_address": f"{recipient}",
             "amount": f"{amount}",
-            "denom": "INJ",
+            "denom": "inj",
         }
         try:
             result = await self.chain_client.execute_function(

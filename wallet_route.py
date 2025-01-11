@@ -2,6 +2,7 @@ from quart import Quart, jsonify, request
 from quart_cors import cors
 from database_engine.wallet_model import StorageEngine
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 from database_engine.utils.injective_utils import InjectiveTransaction
 
@@ -44,7 +45,7 @@ async def authorize():
         
     """Global middleware to check for Authorization header."""
     # Exclude routes that do not need authorization
-    if request.endpoint in ['health_check', 'open_route']:
+    if request.endpoint in ['health_check', 'open_route', 'ping']:
         return  # Skip auth for these routes
 
     # Get the Authorization header
@@ -61,6 +62,13 @@ async def authorize():
 
 # Initialize storage engine
 storage_engine = StorageEngine()
+
+@app.route("/ping", methods=["GET"])
+async def ping():
+    """Health check endpoint"""
+    return jsonify(
+        {"status": "ok", "healthy": True, "timestamp": datetime.now().isoformat(), "version": "1.0.0"}
+    )
 
 @app.route('/create_wallet', methods=['POST'])
 async def create_wallet():
@@ -167,6 +175,7 @@ async def transfer_funds():
         result = await agent.transfer_funds(recipient, amount)
         return jsonify(result), 200
     except Exception as e:
+        print(f"error: {str(e)}")
         return jsonify({"error": str(e)}), 500
     
 
