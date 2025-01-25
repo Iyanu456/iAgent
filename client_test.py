@@ -144,7 +144,7 @@ async def transfer():
     # Arguments for the query_balances function
     arguments = {
         "to_address": "inj1aj5w58z2kpyx3g4yj7f2ynx3zgr4qykuces0m3",
-        "amount": "0.000000012",
+        "amount": "1",
         
         "denom": "INJ",
         #"client_address": address  # List of token denominations to query. Can be empty to fetch all balances.
@@ -161,10 +161,10 @@ async def transfer():
     if "error" in result:
         print("Error:", result["error"])
     else:
-        print("Balances:", result)
+        print("tranfer succesful: ", result)
 # Run the script
 if __name__ == "__main__":
-    asyncio.run(transfer())
+    asyncio.run(main())
 
 
 

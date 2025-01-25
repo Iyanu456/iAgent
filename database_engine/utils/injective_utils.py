@@ -79,7 +79,7 @@ class InjectiveTransaction:
         arguments = {
             "to_address": f"{recipient}",
             "amount": f"{amount}",
-            "denom": "inj",
+            "denom": "INJ",
         }
         try:
             result = await self.chain_client.execute_function(
@@ -87,9 +87,10 @@ class InjectiveTransaction:
                 arguments=arguments,
                 agent_id=self.agent_id,
             )
-            #print(result)
+            print(result)
             return result
         except Exception as e:
+            print(f"{e}")
             print(f"Error transferring funds: {e}")
             return {"ok": False, "message": f"Error transferring funds: {e}"}
 
@@ -107,14 +108,15 @@ class InjectiveTransaction:
     print("Balances:", balances)
 
     # Test transfer_funds
-    recipient = "inj1aj5w58z2kpyx3g4yj7f2ynx3zgr4qykuces0m3"
-    amount = "0.2"
+    recipient = "inj140zjcqg4pxyne9hvhgxrgnkn7mmwvu0y6d5qlq"
+    amount = "0.04"
     transfer_result = await utils.transfer_funds(recipient, amount)
     print("Transfer Result:", transfer_result)
 
     balances = await utils.query_balances()
-    print("Balances:", balances)"""
-"""
+    print("Balances:", balances)
+
 
 if __name__ == "__main__":
-    asyncio.run(main())"""
+    asyncio.run(main())
+    """

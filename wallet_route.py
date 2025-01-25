@@ -21,7 +21,7 @@ app = cors(
     
     allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
     allow_methods=["GET", "POST", "OPTIONS"],  # Ensure OPTIONS is included
-    allow_origin=["*"],  # Explicitly allow your frontend origin
+    allow_origin=["*", "http://localhost:5173"],  # Explicitly allow your frontend origin
 
 )
 agents = {}
@@ -32,7 +32,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 @app.route("/<path:path>", methods=["OPTIONS"])
 async def handle_options(path):
     response = jsonify({"ok": True})
-    response.headers.add("Access-Control-Allow-Origin", "http://localhost:5173")
+    response.headers.add("Access-Control-Allow-Origin", "http://localhost:5173" )
     response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
     response.headers.add("Access-Control-Allow-Headers", "Authorization, Content-Type")
     return response, 200
@@ -173,12 +173,13 @@ async def transfer_funds():
 
         # Call the transfer_funds method
         result = await agent.transfer_funds(recipient, amount)
+        print(result)
         return jsonify(result), 200
     except Exception as e:
         print(f"error: {str(e)}")
         return jsonify({"error": str(e)}), 500
     
-
+    
 @app.route('/check_user/<user_id>', methods=['GET'])
 async def check_user(user_id):
     storage_engine = StorageEngine()

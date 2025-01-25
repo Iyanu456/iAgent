@@ -6,18 +6,9 @@ from injective_functions.utils.function_helper import (
     FunctionExecutor,
 )
 
-
-from decimal import Decimal
-from injective_functions.base import InjectiveBase
-from typing import Dict, List
-from injective_functions.utils.indexer_requests import fetch_decimal_denoms
-from injective_functions.utils.helpers import detailed_exception_info
-
-
-
 # Load environment variables
 load_dotenv()
-ENVIRONMENT = os.getenv("ENVIRONMENT", "testnet")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "mainnet")
 
 
 
@@ -55,7 +46,6 @@ class InjectiveChainClient:
             }
 
 
-
 class InjectiveTransaction:
     def __init__(self, agent_id, private_key, chain_client):
         self.agent_id = agent_id
@@ -89,7 +79,7 @@ class InjectiveTransaction:
         arguments = {
             "to_address": f"{recipient}",
             "amount": f"{amount}",
-            "denom": "inj",
+            "denom": "INJ",
         }
         try:
             result = await self.chain_client.execute_function(
@@ -97,9 +87,10 @@ class InjectiveTransaction:
                 arguments=arguments,
                 agent_id=self.agent_id,
             )
-            #print(result)
+            print(result)
             return result
         except Exception as e:
+            print(f"{e}")
             print(f"Error transferring funds: {e}")
             return {"ok": False, "message": f"Error transferring funds: {e}"}
 
@@ -118,7 +109,7 @@ async def main():
 
     # Test transfer_funds
     recipient = "inj1aj5w58z2kpyx3g4yj7f2ynx3zgr4qykuces0m3"
-    amount = "0.0001"
+    amount = "0.04"
     transfer_result = await utils.transfer_funds(recipient, amount)
     print("Transfer Result:", transfer_result)
 
